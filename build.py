@@ -19,7 +19,7 @@ from warnings import warn
 
 from concurrent.futures import as_completed, ProcessPoolExecutor
 from jinja2 import Markup
-from ordereddict import OrderedDict
+from collections import OrderedDict
 
 from dxr.config import Config
 from dxr.plugins import load_htmlifiers, load_indexers

@@ -1,4 +1,4 @@
-from ordereddict import OrderedDict
+from collections import OrderedDict
 from glob import glob
 from os.path import basename
 from time import gmtime, strftime

@@ -1,6 +1,6 @@
 from ConfigParser import ConfigParser
 from datetime import datetime
-from ordereddict import OrderedDict
+from collections import OrderedDict
 from operator import attrgetter
 import os
 from os.path import dirname, isdir
