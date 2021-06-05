@@ -26,6 +26,7 @@ ext_map = {
     "cpp":        'cpp',
     "cc":         'cpp',
     "cxx":        'cpp',
+    "icc":        'cpp',
     "c":          'c',
     "xul":        'ui',
     "svg":        'svg',
