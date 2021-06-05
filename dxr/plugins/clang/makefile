@@ -1,13 +1,14 @@
+CLANG_LIBS := -lclang
 LLVM_CONFIG ?= llvm-config
-LLVM_LDFLAGS := $(shell ${LLVM_CONFIG} --ldflags)
+LLVM_LDFLAGS := $(shell ${LLVM_CONFIG} --ldflags --libs --system-libs) $(CLANG_LIBS)
 CXXFLAGS := $(shell ${LLVM_CONFIG} --cxxflags) -Wall -Wno-strict-aliasing \
 	$(if $(DEBUG),-O0 -g)
-LDFLAGS := -fPIC -g -Wl,-R -Wl,'$$ORIGIN' $(LLVM_LDFLAGS) -shared
+LDFLAGS := $(LDFLAGS) -fPIC -g $(LLVM_LDFLAGS) -shared
 
 build: libclang-index-plugin.so
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $^ -o $@
+	$(CXX) $(CXXFLAGS) -fPIC -c $^ -o $@
 
 libclang-index-plugin.so: dxr-index.o sha1.o
 	$(CXX) $(LDFLAGS) $^ -o $@

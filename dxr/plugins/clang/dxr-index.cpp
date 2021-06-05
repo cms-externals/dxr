@@ -3,6 +3,7 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/Version.h"
+#include "clang/Basic/FileManager.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/Lex/Lexer.h"
@@ -128,7 +129,7 @@ private:
   std::ostream *out;
   std::map<std::string, FileInfo *> relmap;
   LangOptions &features;
-  DiagnosticConsumer *inner;
+  std::unique_ptr<clang::DiagnosticConsumer> inner;
 
   FileInfo *getFileInfo(const std::string &filename) {
     std::map<std::string, FileInfo *>::iterator it;
@@ -158,7 +159,7 @@ public:
       m_currentFunction(NULL) {
     inner = ci.getDiagnostics().takeClient();
     ci.getDiagnostics().setClient(this, false);
-    ci.getPreprocessor().addPPCallbacks(new PreprocThunk(this));
+    ci.getPreprocessor().addPPCallbacks(std::make_unique<PreprocThunk>(this));
   }
 
   virtual DiagnosticConsumer *clone(DiagnosticsEngine &Diags) const {
@@ -390,7 +391,7 @@ public:
       recordValue("name", nd->getNameAsString());
       recordValue("qualname", getQualifiedName(*nd));
       recordValue("loc", locationToString(d->getLocation()));
-      recordValue("kind", d->getKindName());
+      recordValue("kind", d->getKindName().str());
       printScope(d);
       // Linkify the name, not the `enum'
       printExtent(nd->getLocation(), nd->getLocation());
@@ -744,7 +745,7 @@ public:
   }
 
   bool VisitCallExpr(CallExpr *e) {
-    if (!interestingLocation(e->getLocStart()))
+    if (!interestingLocation(e->getBeginLoc()))
       return true;
 
     Decl *callee = e->getCalleeDecl();
@@ -756,7 +757,7 @@ public:
     // 1. callee isn't necessarily a function. Think function pointers.
     // 2. We might not be in a function. Think global function decls
     // 3. Virtual functions need not be called virtually!
-    beginRecord("call", e->getLocStart());
+    beginRecord("call", e->getBeginLoc());
     if (m_currentFunction) {
       recordValue("callername", getQualifiedName(*m_currentFunction));
       recordValue("callerloc", locationToString(m_currentFunction->getLocation()));
@@ -783,7 +784,7 @@ public:
   }
 
   bool VisitCXXConstructExpr(CXXConstructExpr *e) {
-    if (!interestingLocation(e->getLocStart()))
+    if (!interestingLocation(e->getBeginLoc()))
       return true;
 
     CXXConstructorDecl *callee = e->getConstructor();
@@ -795,7 +796,7 @@ public:
     // 1. callee isn't necessarily a function. Think function pointers.
     // 2. We might not be in a function. Think global function decls
     // 3. Virtual functions need not be called virtually!
-    beginRecord("call", e->getLocStart());
+    beginRecord("call", e->getBeginLoc());
     if (m_currentFunction) {
       recordValue("callername", getQualifiedName(*m_currentFunction));
       recordValue("callerloc", locationToString(m_currentFunction->getLocation()));
@@ -923,7 +924,7 @@ public:
       if (sm.isMacroArgExpansion(loc))
         loc = sm.getImmediateSpellingLoc(loc);
       else
-        loc = sm.getImmediateExpansionRange(loc).first;
+        loc = sm.getImmediateExpansionRange(loc).getBegin();
     }
     return loc;
   }
@@ -1070,7 +1071,7 @@ public:
         // you include a nonexistent file.
         !file ||
 
-        !(target = getFileInfo(file->getName()))->interesting ||
+        !(target = getFileInfo(file->getName().str()))->interesting ||
 
         // TODO: Come up with some kind of reasonable extent for macro-based
         // includes, like #include FOO_MACRO.
@@ -1150,8 +1151,8 @@ void PreprocThunk::InclusionDirective(  // same in 3.2 and 3.3
 
 class DXRIndexAction : public PluginASTAction {
 protected:
-  ASTConsumer *CreateASTConsumer(CompilerInstance &CI, llvm::StringRef f) {
-    return new IndexConsumer(CI);
+  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI, llvm::StringRef f) {
+    return std::make_unique<IndexConsumer>(CI);
   }
 
   bool ParseArgs(const CompilerInstance &CI,
