@@ -21,7 +21,7 @@ class Schema(object):
 
     def get_create_sql(self):
         """ Returns the SQL that creates the tables in this schema. """
-        return '\n'.join([tbl.get_create_sql() for tbl in self.tables.itervalues()])
+        return '\n'.join([tbl.get_create_sql() for tbl in self.tables.values()])
 
     def get_insert_sql(self, tblname, args):
         return self.tables[tblname].get_insert_sql(args)
@@ -128,7 +128,7 @@ class SchemaTable(object):
         unwanted = []
 
         # Only add the keys in the columns
-        for key in args.iterkeys():
+        for key in args.keys():
             if key not in colset:
                 unwanted.append(key)
 
@@ -137,4 +137,4 @@ class SchemaTable(object):
 
         return ('INSERT OR IGNORE INTO %s (%s) VALUES (%s)' %
                         (self.name, ','.join(args.keys()), ','.join('?' for k in range(0, len(args)))),
-                        args.values())
+                        list(args.values()))

@@ -250,7 +250,7 @@ def hash_mismatches(expected_hash_map, downloaded_hashes):
     it's already installed and we're not risking anything.
 
     """
-    for package_name, expected_hashes in expected_hash_map.iteritems():
+    for package_name, expected_hashes in expected_hash_map.items():
         try:
             hash_of_download = downloaded_hashes[package_name]
         except KeyError:

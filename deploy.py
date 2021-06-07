@@ -254,7 +254,7 @@ def run(command, **kwargs):
 
     """
     output = check_output(
-        command.format(**dict((k, quote(v)) for k, v in kwargs.iteritems())),
+        command.format(**dict((k, quote(v)) for k, v in kwargs.items())),
         shell=True)
     return output
 

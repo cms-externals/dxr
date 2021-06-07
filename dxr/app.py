@@ -131,7 +131,7 @@ def search(tree):
                                     qtext,
                                     case=True if is_case_sensitive else None),
                          description)
-                        for t, description in trees.iteritems()]
+                        for t, description in trees.items()]
     else:
         arguments['tree'] = trees.keys()[0]
         error = "Tree '%s' is not a valid tree." % tree

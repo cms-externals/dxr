@@ -1,10 +1,15 @@
+from __future__ import print_function
 from codecs import getdecoder
 import cgi
 from datetime import datetime
 from errno import ENOENT
 from fnmatch import fnmatchcase
 from heapq import merge
-from itertools import chain, groupby, izip_longest
+from itertools import chain, groupby
+try:
+  from itertools import izip_longest
+except ImportError:
+  from itertools import zip_longest as izip_longest
 import json
 from operator import itemgetter
 import os
@@ -16,10 +21,11 @@ import sys
 from sys import exc_info
 from traceback import format_exc
 from warnings import warn
+from time import sleep
 
-from concurrent.futures import as_completed, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from jinja2 import Markup
-from ordereddict import OrderedDict
+from collections import OrderedDict
 
 from dxr.config import Config
 from dxr.plugins import load_htmlifiers, load_indexers
@@ -87,14 +93,14 @@ def build_instance(config_path, nb_jobs=None, tree=None, verbose=False):
     if tree:
         trees = [t for t in config.trees if t.name == tree]
         if len(trees) == 0:
-            print >> sys.stderr, "Tree '%s' is not defined in config file!" % tree
+            print ("Tree '%s' is not defined in config file!" % tree, file=sys.stderr)
             sys.exit(1)
     else:
         # Build everything if no tree is provided
         trees = config.trees
 
     # Create config.target_folder (if not exists)
-    print "Generating target folder"
+    print ("Generating target folder")
     ensure_folder(config.target_folder, False)
     ensure_folder(config.temp_folder, not skip_indexing)
     ensure_folder(config.log_folder, not skip_indexing)
@@ -143,7 +149,7 @@ def build_instance(config_path, nb_jobs=None, tree=None, verbose=False):
         conn = connect_db(tree.target_folder)
 
         if skip_indexing:
-            print " - Skipping indexing (due to 'index' in 'skip_stages')"
+            print (" - Skipping indexing (due to 'index' in 'skip_stages')")
         else:
             # Create database tables
             create_tables(tree, conn)
@@ -162,13 +168,13 @@ def build_instance(config_path, nb_jobs=None, tree=None, verbose=False):
             conn.commit()
 
         if 'html' in config.skip_stages:
-            print " - Skipping htmlifying (due to 'html' in 'skip_stages')"
+            print (" - Skipping htmlifying (due to 'html' in 'skip_stages')")
         else:
-            print "Building HTML for the '%s' tree." % tree.name
+            print ("Building HTML for the '%s' tree." % tree.name)
 
             max_file_id = conn.execute("SELECT max(files.id) FROM files").fetchone()[0]
             if config.disable_workers:
-                print " - Worker pool disabled (due to 'disable_workers')"
+                print (" - Worker pool disabled (due to 'disable_workers')")
                 _build_html_for_file_ids(tree, 0, max_file_id)
             else:
                 run_html_workers(tree, config, max_file_id)
@@ -179,7 +185,7 @@ def build_instance(config_path, nb_jobs=None, tree=None, verbose=False):
 
         # Save the tree finish time
         delta = datetime.now() - start_time
-        print "(finished building '%s' in %s)" % (tree.name, delta)
+        print ("(finished building '%s' in %s)" % (tree.name, delta))
 
     # Print a neat summary
 
@@ -197,7 +203,7 @@ def ensure_folder(folder, clean=False):
 
 
 def create_tables(tree, conn):
-    print "Creating tables"
+    print ("Creating tables")
     conn.execute("CREATE VIRTUAL TABLE trg_index USING trilite")
     conn.executescript(dxr.languages.language_schema.get_create_sql())
 
@@ -220,7 +226,7 @@ def _unignored_folders(folders, source_path, ignore_patterns, ignore_paths):
 
 def index_files(tree, conn):
     """Build the ``files`` table, the trigram index, and the HTML folder listings."""
-    print "Indexing files from the '%s' tree" % tree.name
+    print ("Indexing files from the '%s' tree" % tree.name)
     start_time = datetime.now()
     cur = conn.cursor()
     # Walk the directory tree top-down, this allows us to modify folders to
@@ -248,8 +254,10 @@ def index_files(tree, conn):
 
             # the file
             try:
-                with open(file_path, 'r') as source_file:
+                with open(file_path, 'r', encoding='utf-8') as source_file:
                     data = source_file.read()
+            except UnicodeDecodeError as exc:
+                continue
             except IOError as exc:
                 if exc.errno == ENOENT and islink(file_path):
                     # It's just a bad symlink (or a symlink that was swiped out
@@ -290,7 +298,7 @@ def index_files(tree, conn):
     conn.commit()
 
     # Print time
-    print "(finished in %s)" % (datetime.now() - start_time)
+    print ("(finished in %s)" % (datetime.now() - start_time))
 
 
 def build_folder(tree, conn, folder, indexed_files, indexed_folders):
@@ -387,7 +395,7 @@ def build_tree(tree, conn, verbose):
     # Open log file
     with open_log(tree, 'build.log', verbose) as log:
         # Call the make command
-        print "Building the '%s' tree" % tree.name
+        print ("Building the '%s' tree" % tree.name)
         r = subprocess.call(
             tree.build_command.replace('$jobs', tree.config.nb_jobs),
             shell   = True,
@@ -399,12 +407,11 @@ def build_tree(tree, conn, verbose):
 
     # Abort if build failed!
     if r != 0:
-        print >> sys.stderr, ("Build command for '%s' failed, exited non-zero."
-                              % tree.name)
+        print ("Build command for '%s' failed, exited non-zero." % tree.name, file=sys.stderr)
         if not verbose:
-            print >> sys.stderr, 'Log follows:'
+            print ('Log follows:',file=sys.stderr)
             with open(log.name) as log_file:
-                print >> sys.stderr, '    | %s ' % '    | '.join(log_file)
+                print ('    | %s ' % '    | '.join(log_file),file=sys.stderr)
         sys.exit(1)
 
     # Let plugins post process
@@ -414,21 +421,21 @@ def build_tree(tree, conn, verbose):
 
 def finalize_database(conn):
     """Finalize the database."""
-    print "Finalize database:"
+    print ("Finalize database:")
 
-    print " - Building database statistics for query optimization"
+    print (" - Building database statistics for query optimization")
     conn.execute("ANALYZE");
 
-    print " - Running integrity check"
+    print (" - Running integrity check")
     isOkay = None
     for row in conn.execute("PRAGMA integrity_check"):
         if row[0] == "ok" and isOkay is None:
             isOkay = True
         else:
             if isOkay is not False:
-                print >> sys.stderr, "Database integerity check failed"
+                print ("Database integerity check failed",file=sys.stderr)
             isOkay = False
-            print >> sys.stderr, "  | %s" % row[0]
+            print ("  | %s" % row[0],file=sys.stderr)
     if not isOkay:
         sys.exit(1)
 
@@ -449,6 +456,7 @@ def _sliced_range_bounds(a, b, slice_size):
     """Divide ``range(a, b)`` into slices of size ``slice_size``, and
     return the min and max values of each slice."""
     this_min = a
+    this_max = a
     while this_min == a or this_max < b:
         this_max = min(b, this_min + slice_size - 1)
         yield this_min, this_max
@@ -458,22 +466,19 @@ def _sliced_range_bounds(a, b, slice_size):
 def run_html_workers(tree, config, max_file_id):
     """Farm out the building of HTML to a pool of processes."""
 
-    print ' - Initializing worker pool'
-
-    with ProcessPoolExecutor(max_workers=int(tree.config.nb_jobs)) as pool:
-        print ' - Enqueuing jobs'
+    print (' - Initializing worker pool %s with max file id %s' % (tree.config.nb_jobs, max_file_id))
+    with ThreadPoolExecutor(max_workers=int(tree.config.nb_jobs)) as pool:
+        print (' - Enqueuing jobs')
         futures = [pool.submit(_build_html_for_file_ids, tree, start, end) for
                    (start, end) in _sliced_range_bounds(1, max_file_id, 500)]
-        print ' - Waiting for workers to complete'
-        for num_done, future in enumerate(as_completed(futures), 1):
-            print '%s of %s HTML workers done.' % (num_done, len(futures))
-            result = future.result()
-            if result:
-                formatted_tb, type, value, id, path = result
-                print 'A worker failed while htmlifying %s, id=%s:' % (path, id)
-                print formatted_tb
-                # Abort everything if anything fails:
-                raise type, value  # exits with non-zero
+        print (' - Waiting for workers to complete %s ' % len(futures))
+        while futures:
+          fs = [f for f in futures if f.running()]
+          if len(fs) != len(futures):
+            print (" Remaining tasks : %s" % len(fs))
+            futures = fs
+          else:
+            sleep(1)
 
 
 def _build_html_for_file_ids(tree, start, end):
@@ -867,7 +872,7 @@ def remove_overlapping_refs(tags):
         del tags[i + 1:]
 
 
-def nesting_order((point, is_start, payload)):
+def nesting_order(py3_params):
     """Return a sorting key that places coincident Line boundaries outermost,
     then Ref boundaries, and finally Region boundaries.
 
@@ -898,6 +903,7 @@ def nesting_order((point, is_start, payload)):
     tag balancer.
 
     """
+    (point, is_start, payload) = py3_params
     return point, is_start, (payload.sort_order if is_start else
                              -payload.sort_order)
 

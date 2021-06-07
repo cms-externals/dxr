@@ -1,6 +1,7 @@
-from ConfigParser import ConfigParser
+from __future__ import print_function
+from configparser import ConfigParser
 from datetime import datetime
-from ordereddict import OrderedDict
+from collections import OrderedDict
 from operator import attrgetter
 import os
 from os.path import dirname, isdir
@@ -37,20 +38,20 @@ class Config(object):
         parser.read(configfile)
 
         # Set config values
-        self.plugin_folder    = parser.get('DXR', 'plugin_folder',    False, override)
-        self.nb_jobs          = parser.get('DXR', 'nb_jobs',          False, override)
-        self.temp_folder      = parser.get('DXR', 'temp_folder',      False, override)
-        self.target_folder    = parser.get('DXR', 'target_folder',    False, override)
-        self.log_folder       = parser.get('DXR', 'log_folder',       False, override)
-        self.wwwroot          = parser.get('DXR', 'wwwroot',          False, override)
-        self.enabled_plugins  = parser.get('DXR', 'enabled_plugins',  False, override)
-        self.disabled_plugins = parser.get('DXR', 'disabled_plugins', False, override)
-        self.directory_index  = parser.get('DXR', 'directory_index',  False, override)
-        self.generated_date   = parser.get('DXR', 'generated_date',   False, override)
-        self.disable_workers  = parser.get('DXR', 'disable_workers',  False, override)
-        self.skip_stages      = parser.get('DXR', 'skip_stages',      False, override)
-        self.default_tree     = parser.get('DXR', 'default_tree',     False, override)
-        self.filter_language  = parser.get('DXR', 'filter_language',  False, override)
+        self.plugin_folder    = parser.get('DXR', 'plugin_folder',    vars=override)
+        self.nb_jobs          = parser.get('DXR', 'nb_jobs',          vars=override)
+        self.temp_folder      = parser.get('DXR', 'temp_folder',      vars=override)
+        self.target_folder    = parser.get('DXR', 'target_folder',    vars=override)
+        self.log_folder       = parser.get('DXR', 'log_folder',       vars=override)
+        self.wwwroot          = parser.get('DXR', 'wwwroot',          vars=override)
+        self.enabled_plugins  = parser.get('DXR', 'enabled_plugins',  vars=override)
+        self.disabled_plugins = parser.get('DXR', 'disabled_plugins', vars=override)
+        self.directory_index  = parser.get('DXR', 'directory_index',  vars=override)
+        self.generated_date   = parser.get('DXR', 'generated_date',   vars=override)
+        self.disable_workers  = parser.get('DXR', 'disable_workers',  vars=override)
+        self.skip_stages      = parser.get('DXR', 'skip_stages',      vars=override)
+        self.default_tree     = parser.get('DXR', 'default_tree',     vars=override)
+        self.filter_language  = parser.get('DXR', 'filter_language',  vars=override)
         # Set configfile
         self.configfile       = configfile
         self.trees            = []
@@ -93,7 +94,7 @@ class Config(object):
         if conflicts:
             msg = "Plugin: '%s' is both enabled and disabled"
             for p in conflicts:
-                print >> sys.stderr, msg % p
+                print (msg % p,file=sys.stderr)
             sys.exit(1)
 
         # Load trees
@@ -182,10 +183,10 @@ class TreeConfig(object):
         if conflicts:
             msg = "Plugin: '%s' is both enabled and disabled in '%s'"
             for p in conflicts:
-                print >> sys.stderr, msg % (p, name)
+                print (msg % (p, name),file=sys.stderr)
             sys.exit(1)
 
         # Warn if $jobs isn't used...
         if "$jobs" not in self.build_command:
             msg = "Warning: $jobs is not used in build_command for '%s'"
-            print >> sys.stderr, msg % name
+            print (msg % name, file=sys.stderr)

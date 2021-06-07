@@ -13,11 +13,10 @@ import os
 from os import dup
 from os.path import join, dirname
 import jinja2
-#import sqlite3
-from pysqlite2 import dbapi2 as sqlite3
+from pysqlite3 import dbapi2 as sqlite3
 import string
 from sys import stdout
-from urllib import quote, quote_plus
+from urllib.parse import quote, quote_plus
 
 import dxr
 
@@ -88,7 +87,7 @@ def search_url(www_root, tree, query, **query_string_params):
                                  quote(tree),
                                  # quote_plus needs a string.
                                  quote_plus(query.encode('utf-8')))
-    for key, value in query_string_params.iteritems():
+    for key, value in query_string_params.items():
         if value is not None:
             ret += '&%s=%s' % (key, ('true' if value else 'false'))
     return ret

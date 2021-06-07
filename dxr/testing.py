@@ -1,3 +1,4 @@
+from __future__ import print_function
 from commands import getstatusoutput
 import json
 from os import chdir, mkdir
@@ -191,7 +192,7 @@ build_command = $CXX -o main main.cpp
         if cls.should_delete_instance:
             rmtree(cls._config_dir_path)
         else:
-            print 'Not deleting instance in %s.' % cls._config_dir_path
+            print ('Not deleting instance in %s.' % cls._config_dir_path)
 
     def _source_for_query(self, s):
         return (s.replace('<b>', '')

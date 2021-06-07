@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """Command to build a DXR instance from one or more source trees"""
 
 from optparse import OptionParser
@@ -38,8 +38,7 @@ def main():
     if args:
         # Handle deprecated --file arg:
         if options.config_file:
-            print >> stderr, ('Warning: overriding the --file or -f flag with '
-                              'the first positional argument.')
+            print ('Warning: overriding the --file or -f flag with the first positional argument.', file=sys.stderr)
         options.config_file = (os.path.join(args[0], 'dxr.config') if
                                isdir(args[0]) else args[0])
     elif not options.config_file:
