@@ -111,7 +111,7 @@ def connect_db(dir):
     :arg dir: The directory containing the .dxr-xref.sqlite file
 
     """
-    conn = sqlite3.connect(join(dir, ".dxr-xref.sqlite"))
+    conn = sqlite3.connect(join(dir, ".dxr-xref.sqlite"),check_same_thread=False)
     conn.enable_load_extension(True)
     conn.load_extension("libtrilite.so")
     conn.enable_load_extension(False)

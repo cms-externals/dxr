@@ -455,7 +455,7 @@ class ClangHtmlifier(object):
 
             # Make sure we have a sane limitation of kind
             if kind not in ('class', 'struct', 'enum', 'union'):
-                print ("kind '%s' was replaced for 'type'!" % kind, , file=sys.stderr)
+                print ("kind '%s' was replaced for 'type'!" % kind, file=sys.stderr)
                 kind = 'type'
 
             # Add the outer type as the first link
@@ -505,7 +505,7 @@ def load(tree, conn):
     _conn = conn
 
 
-_patterns = ('*.c', '*.cc', '*.cpp', '*.cxx', '*.h', '*.hpp')
+_patterns = ('*.c', '*.cc', '*.cpp', '*.cxx', '*.h', '*.hpp', '*.icc')
 def htmlify(path, text):
     fname = os.path.basename(path)
     if any((fnmatch.fnmatchcase(fname, p) for p in _patterns)):

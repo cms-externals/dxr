@@ -1,6 +1,6 @@
 from __future__ import print_function
 from codecs import getdecoder
-import cgi
+import html
 from datetime import datetime
 from errno import ENOENT
 from fnmatch import fnmatchcase
@@ -21,9 +21,7 @@ import sys
 from sys import exc_info
 from traceback import format_exc
 from warnings import warn
-from time import sleep
 
-from concurrent.futures import ThreadPoolExecutor
 from jinja2 import Markup
 from collections import OrderedDict
 
@@ -465,20 +463,9 @@ def _sliced_range_bounds(a, b, slice_size):
 
 def run_html_workers(tree, config, max_file_id):
     """Farm out the building of HTML to a pool of processes."""
-
-    print (' - Initializing worker pool %s with max file id %s' % (tree.config.nb_jobs, max_file_id))
-    with ThreadPoolExecutor(max_workers=int(tree.config.nb_jobs)) as pool:
-        print (' - Enqueuing jobs')
-        futures = [pool.submit(_build_html_for_file_ids, tree, start, end) for
-                   (start, end) in _sliced_range_bounds(1, max_file_id, 500)]
-        print (' - Waiting for workers to complete %s ' % len(futures))
-        while futures:
-          fs = [f for f in futures if f.running()]
-          if len(fs) != len(futures):
-            print (" Remaining tasks : %s" % len(fs))
-            futures = fs
-          else:
-            sleep(1)
+    print(' - Generating html files 1-%s' % max_file_id)
+    _build_html_for_file_ids(tree, 1, max_file_id)
+    print (' - All done')
 
 
 def _build_html_for_file_ids(tree, start, end):
@@ -502,6 +489,8 @@ def _build_html_for_file_ids(tree, start, end):
         # more humane) so we can get some automatic timestamps. If we get
         # timestamps spit out in the parent process, we don't need any of the
         # timing or counting code here.
+        cnt = 0
+        total = end - start + 1
         with open_log(tree, 'build-html-%s-%s.log' % (start, end)) as log:
             # Load htmlifier plugins:
             plugins = load_htmlifiers(tree)
@@ -524,7 +513,11 @@ def _build_html_for_file_ids(tree, start, end):
                 dst_path = os.path.join(tree.target_folder, path + '.html')
                 log.write('Starting %s.\n' % path)
                 htmlify(tree, conn, icon, path, text, dst_path, plugins)
+                cnt += 1
+                if (cnt%1000)==0:
+                  print(' - Processed %s/%s' % (cnt, total))
 
+            print(' - Processed %s/%s' % (cnt, total))
             conn.commit()
             conn.close()
 
@@ -609,7 +602,7 @@ class Region(TagWriter):
                     # them.
 
     def opener(self):
-        return u'<span class="%s">' % cgi.escape(self.payload, True)
+        return u'<span class="%s">' % html.escape(self.payload, True)
 
     def closer(self):
         return u'</span>'
@@ -621,13 +614,13 @@ class Ref(TagWriter):
 
     def opener(self):
         menu, qualname, value = self.payload
-        menu = cgi.escape(json.dumps(menu), True)
+        menu = html.escape(json.dumps(menu), True)
         css_class = ''
         if qualname:
             css_class = ' class=\"tok' + str(hash(qualname)) +'\"'
         title = ''
         if value:
-            title = ' title="' + cgi.escape(value, True) + '"'
+            title = ' title="' + html.escape(value, True) + '"'
         return u'<a data-menu="%s"%s%s>' % (menu, css_class, title)
 
     def closer(self):
@@ -649,7 +642,7 @@ def html_lines(tags, slicer):
     segments = []
 
     for point, is_start, payload in tags:
-        segments.append(cgi.escape(slicer(up_to, point).strip(u'\r\n')))
+        segments.append(html.escape(slicer(up_to, point).strip(u'\r\n')))
         up_to = point
         if payload is LINE:
             if not is_start and segments:
@@ -918,7 +911,7 @@ def build_lines(text, htmlifiers, encoding='utf-8'):
     """
     decoder = getdecoder(encoding)
     def decoded_slice(start, end):
-        return decoder(text[start:end], errors='replace')[0]
+        return decoder(text[start:end].encode(), errors='replace')[0]
 
     # For now, we make the same assumption the old build_lines() implementation
     # did, just so we can ship: plugins return byte offsets, not Unicode char
