@@ -4,7 +4,13 @@ BUILD_PLUGINS = $(PLUGINS:%=build-plugin-%)
 CHECK_PLUGINS = $(PLUGINS:%=check-plugin-%)
 CLEAN_PLUGINS = $(PLUGINS:%=clean-plugin-%)
 
-all: build
+all: build-plugin-clang build-plugin-pygmentize trilite
+	python3 setup.py build
+
+install: all
+	python3 setup.py install --prefix=${PREFIX}  --single-version-externally-managed --record=/dev/null
+	cp -p trilite/libtrilite.so $(PREFIX)/lib
+	cp -p trilite/re2/obj/libre2.a ${PREFIX}/lib
 
 test: build
 	LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:`pwd`/trilite python2 setup.py test
