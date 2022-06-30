@@ -531,7 +531,7 @@ public:
         }
       }
     } else if (EnumConstantDecl *ecd = dyn_cast<EnumConstantDecl>(d)) {
-      return ecd->getInitVal().toString(10);
+      return toString(ecd->getInitVal(), 10);
     }
     return std::string();
   }
