@@ -1,4 +1,4 @@
-import cgi
+import html
 from itertools import chain, groupby
 import re
 import struct
@@ -315,10 +315,9 @@ def _highlit_line(content, offsets, markup, markdown, encoding):
         except ValueError:
             chars_before = None
         for start, end in offsets:
-            yield cgi.escape(content[chars_before:start].decode(encoding,
-                                                                'replace'))
+            yield html.escape(content[chars_before:start])
             yield markup
-            yield cgi.escape(content[start:end].decode(encoding, 'replace'))
+            yield html.escape(content[start:end])
             yield markdown
             chars_before = end
         # Make sure to get the rest of the line after the last highlight:
@@ -326,8 +325,7 @@ def _highlit_line(content, offsets, markup, markdown, encoding):
             next_newline = content.index('\n', chars_before)
         except ValueError:  # eof
             next_newline = None
-        yield cgi.escape(content[chars_before:next_newline].decode(encoding,
-                                                                   'replace'))
+        yield html.escape(content[chars_before:next_newline])
     return ''.join(chunks()).lstrip()
 
 
@@ -386,11 +384,12 @@ class genWrap(object):
     def __init__(self, gen):
         self.gen = gen
         self.value = None
-    def next(self):
+
+    def __next__(self):
         try:
-            self.value = self.gen.next()
+            self.value = next(self.gen)
             return True
-        except StopIteration:
+        except:
             self.value = None
             return False
 
@@ -407,7 +406,7 @@ def merge_extents(*elist):
         between start and end.
     """
     elist = [genWrap(e) for e in elist]
-    elist = [e for e in elist if e.next()]
+    elist = [e for e in elist if next(e)]
     while len(elist) > 0:
         start = min((e.value[0] for e in elist))
         end = min((e.value[1] for e in elist if e.value[0] == start))
@@ -418,7 +417,7 @@ def merge_extents(*elist):
                     keylist.append(k)
             e.value = (end, e.value[1], e.value[2])
         yield start, end, keylist
-        elist = [e for e in elist if e.value[0] < e.value[1] or e.next()]
+        elist = [e for e in elist if e.value[0] < e.value[1] or next(e)]
 
 
 def fix_extents_overlap(extents):
