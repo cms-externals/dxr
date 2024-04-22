@@ -2,7 +2,7 @@ from logging import StreamHandler
 from os.path import isdir, isfile, join
 from sys import stderr
 from time import time
-from urllib import quote_plus
+from urllib.parse import quote_plus
 
 from flask import (Blueprint, Flask, send_from_directory, current_app,
                    send_file, request, redirect, jsonify, render_template)
