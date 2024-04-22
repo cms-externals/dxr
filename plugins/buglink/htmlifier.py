@@ -1,3 +1,4 @@
+from __future__ import print_function
 import cgi
 import re
 import sys
@@ -19,7 +20,7 @@ def load(tree, conn):
     if hasattr(tree, 'plugin_buglink_name'):
         name = tree.plugin_buglink_name
     else:
-        print >> sys.stderr, 'buglink plugin needs plugin_buglink_name configuration key'
+        print ('buglink plugin needs plugin_buglink_name configuration key', file=sys.stderr)
         sys.exit(1)
 
     # Get link
@@ -27,7 +28,7 @@ def load(tree, conn):
     url = getattr(tree, 'plugin_buglink_url',
                         getattr(tree, 'plugin_buglink_bugzilla', None))
     if url is None:
-        print >> sys.stderr, 'buglink plugin needs plugin_buglink_url configuration key'
+        print ('buglink plugin needs plugin_buglink_url configuration key', file=sys.stderr)
         sys.exit(1)
 
     # Get bug finder regex

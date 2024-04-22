@@ -39,7 +39,7 @@ def make_app(instance_path):
 @dxr_blueprint.route('/')
 def index():
     config = current_app.config
-    wwwroot = config['WWW_ROOT']
+    wwwroot = config['WWW_ROOT']    
     tree = config['DEFAULT_TREE']
     return redirect('%s/%s/source/' % (wwwroot, tree))
 
@@ -56,13 +56,11 @@ def search(tree):
     config = current_app.config
     www_root = config['WWW_ROOT']
     trees = config['TREES']
-    google_analytics_key = config['GOOGLE_ANALYTICS_KEY']
 
     # Arguments for the template:
     arguments = {
         # Common template variables
         'wwwroot': www_root,
-        'google_analytics_key': google_analytics_key,
         'generated_date': config['GENERATED_DATE']}
 
     error = warning = ''
@@ -133,7 +131,7 @@ def search(tree):
                                     qtext,
                                     case=True if is_case_sensitive else None),
                          description)
-                        for t, description in trees.iteritems()]
+                        for t, description in trees.items()]
     else:
         arguments['tree'] = trees.keys()[0]
         error = "Tree '%s' is not a valid tree." % tree
@@ -172,15 +170,7 @@ def search(tree):
 def browse(tree, path=''):
     """Show a directory listing or a single file from one of the trees."""
     tree_folder = _tree_folder(tree)
-    disk_path = _html_file_path(tree_folder, path)
-    gzip_path = disk_path+'.gz'
-    print gzip_path
-    if isfile(join(tree_folder,gzip_path)):
-    	response = send_from_directory(tree_folder, gzip_path)
-    	response.headers['Content-Encoding'] = 'gzip'
-    	return response
-    else:
-	return send_from_directory(tree_folder, _html_file_path(tree_folder, path))
+    return send_from_directory(tree_folder, _html_file_path(tree_folder, path))
 
 
 @dxr_blueprint.route('/<tree>/')

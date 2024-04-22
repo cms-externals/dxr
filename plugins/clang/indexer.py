@@ -1,3 +1,4 @@
+from __future__ import print_function
 import csv, cgi
 import json
 import dxr.plugins
@@ -35,11 +36,11 @@ def pre_process(tree, env):
 
 
 def post_process(tree, conn):
-    print "cxx-clang post-processing:"
-    print " - Adding tables"
+    print ("cxx-clang post-processing:")
+    print (" - Adding tables")
     conn.executescript(schema.get_create_sql())
 
-    print " - Processing files"
+    print (" - Processing files")
     temp_folder = os.path.join(tree.temp_folder, 'plugins', PLUGIN_NAME)
     for f in os.listdir(temp_folder):
         csv_path = os.path.join(temp_folder, f)
@@ -47,19 +48,19 @@ def post_process(tree, conn):
 
     fixup_scope(conn)
     
-    print " - Generating callgraph"
+    print (" - Generating callgraph")
     generate_callgraph(conn)
     
-    print " - Generating inheritance graph"
+    print (" - Generating inheritance graph")
     generate_inheritance(conn)
 
-    print " - Updating definitions"
+    print (" - Updating definitions")
     update_defids(conn)
 
-    print " - Updating references"
+    print (" - Updating references")
     update_refs(conn)
 
-    print " - Committing changes"
+    print (" - Committing changes")
     conn.commit()
 
 
@@ -523,7 +524,7 @@ def load_indexer_output(fname):
                 argobj[line[i]] = line[i + 1]
             globals()['process_' + line[0]](argobj)
     except Exception:
-        print fname, line
+        print (fname, line)
         raise
     finally:
         f.close()
@@ -553,8 +554,8 @@ def dump_indexer_output(conn, fname):
                 try:
                     conn.execute(stmt[0], stmt[1])
                 except Exception:
-                    print line
-                    print stmt
+                    print (line)
+                    print (stmt)
                     raise
             else:
                 conn.execute(stmt)
@@ -704,7 +705,7 @@ def generate_callgraph(conn):
     # Generate targets table
     overridemap = {}
 
-    for func, funcid in functions.iteritems():
+    for func, funcid in functions.items():
         override = overrides.get(funcid)
 
         if override is None:
@@ -731,7 +732,7 @@ def generate_callgraph(conn):
         if len(childs) != prev:
             rescan.append(base)
 
-    for base, childs in overridemap.iteritems():
+    for base, childs in overridemap.items():
         conn.execute("INSERT OR IGNORE INTO targets (targetid, funcid) VALUES (?, ?)",
                                   (-base, base));
 

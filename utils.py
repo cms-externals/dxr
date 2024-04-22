@@ -7,16 +7,16 @@ import ctypes
 # different version, will fail to load. If you're having trouble getting
 # trilite to load, make sure you're not importing sqlite3 beforehand. Afterward
 # is fine.
-ctypes.CDLL('libtrilite.so').load_trilite_extension()
+#ctypes.CDLL('libtrilite.so').load_trilite_extension()
 
 import os
 from os import dup
 from os.path import join, dirname
 import jinja2
-import sqlite3
+from pysqlite3 import dbapi2 as sqlite3
 import string
 from sys import stdout
-from urllib import quote, quote_plus
+from urllib.parse import quote, quote_plus
 
 import dxr
 
@@ -87,7 +87,7 @@ def search_url(www_root, tree, query, **query_string_params):
                                  quote(tree),
                                  # quote_plus needs a string.
                                  quote_plus(query.encode('utf-8')))
-    for key, value in query_string_params.iteritems():
+    for key, value in query_string_params.items():
         if value is not None:
             ret += '&%s=%s' % (key, ('true' if value else 'false'))
     return ret
@@ -111,7 +111,10 @@ def connect_db(dir):
     :arg dir: The directory containing the .dxr-xref.sqlite file
 
     """
-    conn = sqlite3.connect(join(dir, ".dxr-xref.sqlite"))
+    conn = sqlite3.connect(join(dir, ".dxr-xref.sqlite"),check_same_thread=False)
+    conn.enable_load_extension(True)
+    conn.load_extension("libtrilite.so")
+    conn.enable_load_extension(False)
     conn.text_factory = str
     conn.execute("PRAGMA synchronous=off")
     conn.execute("PRAGMA page_size=32768")

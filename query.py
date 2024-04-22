@@ -370,7 +370,7 @@ def _highlit_lines(content, offsets, markup, markdown, encoding):
                                  markup,
                                  markdown,
                                  encoding)) for
-            line, lines_and_extents in groupby(line_extents, lambda (l, e): l)]
+            line, lines_and_extents in groupby(line_extents, lambda l_e: l_e[0])]
 
 
 def like_escape(val):
@@ -1324,8 +1324,9 @@ filters = [
     )
 ]
 
+xstr = '|'.join(sorted(chain.from_iterable(map(re.escape, f.names()) for f in filters),key=len,reverse=True))
 
-query_grammar = Grammar(ur'''
+query_grammar = Grammar(r'''
     query = _ term*
     term = not_term / positive_term
     not_term = not positive_term
@@ -1342,7 +1343,7 @@ query_grammar = Grammar(ur'''
         # avoids premature matches.
         '|'.join(sorted(chain.from_iterable(map(re.escape, f.names()) for f in filters),
                         key=len,
-                        reverse=True)) + ur'''"
+                        reverse=True)) + r'''"
 
     not = "-"
 
@@ -1383,39 +1384,44 @@ class QueryVisitor(NodeVisitor):
         super(NodeVisitor, self).__init__()
         self.is_case_sensitive = is_case_sensitive
 
-    def visit_query(self, query, (_, terms)):
+    def visit_query(self, query, py3_params):
         """Group terms into a dict of lists by filter type, and return it."""
+        (_ , terms) = py3_params
         d = {}
         for filter_name, subdict in terms:
             d.setdefault(filter_name, []).append(subdict)
         return d
 
-    def visit_term(self, term, ((filter_name, subdict),)):
+    def visit_term(self, term, py3_params):
         """Set the case-sensitive bit and, if not already set, a default not
         bit."""
+        (filter_name, subdict) = py3_params[0]
         subdict['case_sensitive'] = self.is_case_sensitive
         subdict.setdefault('not', False)
         subdict.setdefault('qualified', False)
         return filter_name, subdict
 
-    def visit_not_term(self, not_term, (not_, (filter_name, subdict))):
+    def visit_not_term(self, not_term, py3_params):
         """Add "not" bit to the subdict."""
+        (not_, (filter_name, subdict)) = py3_params
         subdict['not'] = True
         return filter_name, subdict
 
-    def visit_filtered_term(self, filtered_term, (plus, filter, colon, (text_type, subdict))):
+    def visit_filtered_term(self, filtered_term, py3_params):
         """Add fully-qualified indicator to the term subdict, and return it and
         the filter name."""
+        (plus, filter, colon, (text_type, subdict)) = py3_params
         subdict['qualified'] = plus.text == '+'
         return filter.text, subdict
 
-    def visit_text(self, text, ((some_text,), _)):
+    def visit_text(self, text, py3_params):
         """Create the subdictionary that lives in Query.terms. Return it and
         'text', indicating that this is a bare or quoted run of text. If it is
         actually an argument to a filter, ``visit_filtered_term`` will
         overrule us later.
 
         """
+        ((some_text,), _) = py3_params
         return 'text', {'arg': some_text}
 
     def visit_maybe_plus(self, plus, wtf):
