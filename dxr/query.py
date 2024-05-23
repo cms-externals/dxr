@@ -4,7 +4,7 @@ import re
 import struct
 import time
 
-from jinja2 import Markup
+from markupsafe import Markup
 from parsimonious import Grammar
 from parsimonious.nodes import NodeVisitor
 

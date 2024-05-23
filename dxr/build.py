@@ -22,7 +22,7 @@ from sys import exc_info
 from traceback import format_exc
 from warnings import warn
 
-from jinja2 import Markup
+from markupsafe import Markup
 from collections import OrderedDict
 
 from dxr.config import Config

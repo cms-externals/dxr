@@ -438,7 +438,7 @@ public:
       return true;
 
     if (d->isThisDeclarationADefinition() ||
-        d->isPure())  // until we have better support for pure-virtual functions
+        d->isPureVirtual())  // until we have better support for pure-virtual functions
     {
       beginRecord("function", d->getLocation());
       recordValue("name", d->getNameAsString());
