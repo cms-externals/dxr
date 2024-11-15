@@ -1,5 +1,5 @@
 import os, sys
-import imp
+import importlib
 
 
 def indexer_exports():
@@ -19,9 +19,10 @@ def load_indexers(tree):
     plugins = []
     for name in tree.enabled_plugins:
         path = os.path.join(tree.config.plugin_folder, name)
-        f, mod_path, desc = imp.find_module("indexer", [path])
-        plugin = imp.load_module('dxr.plugins.' + name + "_indexer", f, mod_path, desc)
-        f.close()
+        spec = importlib.machinery.PathFinder.find_spec("indexer", [path])
+        plugin = importlib.util.module_from_spec(spec)
+        sys.modules['dxr.plugins.' + name + "_indexer"] = plugin
+        spec.loader.exec_module(plugin)
         plugins.append(plugin)
     return plugins
 
@@ -33,8 +34,9 @@ def load_htmlifiers(tree):
     plugins = []
     for name in tree.enabled_plugins:
         path = os.path.join(tree.config.plugin_folder, name)
-        f, mod_path, desc = imp.find_module("htmlifier", [path])
-        plugin = imp.load_module('dxr.plugins.' + name + "_htmlifier", f, mod_path, desc)
-        f.close()
+        spec = importlib.machinery.PathFinder.find_spec("htmlifier", [path])
+        plugin = importlib.util.module_from_spec(spec)
+        sys.modules['dxr.plugins.' + name + "_htmlifier"] = plugin
+        spec.loader.exec_module(plugin)
         plugins.append(plugin)
     return plugins
