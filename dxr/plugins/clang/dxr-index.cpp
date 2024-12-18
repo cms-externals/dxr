@@ -114,7 +114,7 @@ virtual void InclusionDirective(  // same in 3.2 and 3.3
     StringRef fileName,
     bool isAngled,
     CharSourceRange filenameRange,
-    const FileEntry *file,
+    const FileEntryRef *file,
     StringRef searchPath,
     StringRef relativePath,
     const Module *imported);
@@ -247,7 +247,7 @@ public:
 
     // Make anonymous namespaces in separate files have separate names
     const std::string anon_ns = "<anonymous namespace>";
-    if (StringRef(ret).startswith(anon_ns))
+    if (StringRef(ret).starts_with(anon_ns))
     {
       const std::string &filename = ci.getFrontendOpts().Inputs[0].getFile().str();
       const std::string &realname = getFileInfo(filename)->realname;
@@ -1054,7 +1054,7 @@ public:
       StringRef fileName,
       bool isAngled,
       CharSourceRange filenameRange,
-      const FileEntry *file,
+      const FileEntryRef *file,
       StringRef searchPath,
       StringRef relativePath,
       const Module *imported) {
@@ -1142,7 +1142,7 @@ void PreprocThunk::InclusionDirective(  // same in 3.2 and 3.3
     StringRef fileName,
     bool isAngled,
     CharSourceRange filenameRange,
-    const FileEntry *file,
+    const FileEntryRef *file,
     StringRef searchPath,
     StringRef relativePath,
     const Module *imported) {
