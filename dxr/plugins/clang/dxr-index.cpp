@@ -943,7 +943,7 @@ public:
     beginRecord("warning", info.getLocation());
     recordValue("loc", locationToString(info.getLocation()));
     recordValue("msg", message.c_str(), true);
-    StringRef opt = DiagnosticIDs::getWarningOptionForDiag(info.getID());
+    StringRef opt = info.getDiags()->getDiagnosticIDs()->getWarningOptionForDiag(info.getID());
     if (!opt.empty())
       recordValue("opt", ("-W" + opt).str());
     if (info.getNumRanges() > 0) {
